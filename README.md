@@ -63,6 +63,7 @@ The following properties can be configured:
 |`fillRegion`|`true`|Whether to fill the region where the module is positioned, or to add a div in the normal flow of the page.  When set to `false`, the `width` and `height` properties may be set to restrict the size of the module.|
 |`width`|`"auto"`|Width of the content when `fillRegion` is `false`.|
 |`height`|`"auto"`|Height of the content when `fillRegion` is `false`.|
+|`navImage`|`false`|Whether to allow changing the image manually with keyboard arrows.|
 
 |Source|Description|
 |---|---|
