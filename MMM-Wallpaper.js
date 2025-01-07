@@ -262,41 +262,12 @@ Module.register("MMM-Wallpaper", {
         ? (this.imageIndex + 1) % this.images.length
         : (this.imageIndex - 1 + this.images.length) % this.images.length;
 
-    // self.imageIndex = (self.imageIndex + 1) % self.images.length
-
     const nextImageData = self.images[self.imageIndex];
     if (nextImageData !== null) {
       self.nextImageElement = self.createImage(nextImageData);
       self.content.insertBefore(self.nextImageElement, self.title);
     }
   },
-
-  // Added this to allow navigation between images using the arrow keys
-
-  // navigateImage: function(direction) {
-  //   var self = this;
-
-  //   self.resetLoadImageTimer();
-
-  //   if (self.nextImageElement !== null) {
-  //     self.nextImageElement.onload = null;
-  //     self.content.removeChild(self.nextImageElement);
-  //     self.nextImageElement = null;
-  //   }
-
-  // // Increment or decrement the image index based on the direction
-  // if (direction === "next") {
-  //   self.imageIndex = (self.imageIndex + 1) % self.images.length;
-  // } else if (direction === "previous") {
-  //   self.imageIndex = (self.imageIndex - 1 + self.images.length) % self.images.length;
-  // }
-
-  //   const previousImageData = self.images[self.imageIndex];
-  //   if (previousImageData !== null) {
-  //     self.nextImageElement = self.createImage(previousImageData);
-  //     self.content.insertBefore(self.nextImageElement, self.title);
-  //   }
-  // },
 
   resetLoadImageTimer: function () {
     const self = this;
