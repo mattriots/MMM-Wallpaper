@@ -25,13 +25,14 @@ Module.register("MMM-Wallpaper", {
     flickrDataCacheTime: 24 * 60 * 60 * 1000,
     flickrResultsPerPage: 500, // Flickr API is limited to 500 photos per page
     fadeEdges: false,
+    navImage: false, // Config option for navigation between images
   },
 
-  getStyles: function() {
+  getStyles: function () {
     return ["MMM-Wallpaper.css"];
   },
 
-  start: function() {
+  start: function () {
     var self = this;
 
     self.loadNextImageTimer = null;
@@ -69,16 +70,34 @@ Module.register("MMM-Wallpaper", {
     self.nextImageElement = null;
 
     self.getData();
-    self.updateTimer = setInterval(() => self.getData(), self.config.updateInterval);
+    self.updateTimer = setInterval(
+      () => self.getData(),
+      self.config.updateInterval
+    );
+
+    //Added event listener for keydown (left = previous and right = next)
+    //Conditional check to see if navImage is enabled in the config
+    if (self.config.navImage) {
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") {
+          self.loadNextImage("previous");
+        } else if (event.key === "ArrowRight") {
+          self.loadNextImage("next");
+        }
+      });
+    }
   },
 
-  notificationReceived: function(notification, payload, sender) {
+  notificationReceived: function (notification, payload, sender) {
     var self = this;
 
-    if (notification === "MODULE_DOM_CREATED" && self.config.userPresenceAction === "show") {
+    if (
+      notification === "MODULE_DOM_CREATED" &&
+      self.config.userPresenceAction === "show"
+    ) {
       self.hide();
     } else if (notification === "LOAD_NEXT_WALLPAPER") {
-      self.loadNextImage();
+      self.loadNextImage("next");
     } else if (notification === "USER_PRESENCE") {
       if (self.config.userPresenceAction === "show") {
         payload ? self.show() : self.hide();
@@ -91,32 +110,37 @@ Module.register("MMM-Wallpaper", {
       } else {
         Object.assign(self.config, payload);
       }
-
       clearInterval(self.updateTimer);
       self.getData();
-      self.updateTimer = setInterval(() => self.getData(), self.config.updateInterval);
+      self.updateTimer = setInterval(
+        () => self.getData(),
+        self.config.updateInterval
+      );
     }
   },
 
-  socketNotificationReceived: function(notification, payload) {
+  socketNotificationReceived: function (notification, payload) {
     var self = this;
 
     if (notification === "WALLPAPERS") {
-      if (payload.orientation === self.getOrientation() &&
-          ((Array.isArray(self.config.source) && self.config.source.includes(payload.source)) ||
-           (!Array.isArray(self.config.source) && self.config.source === payload.source)))
-      {
+      if (
+        payload.orientation === self.getOrientation() &&
+        ((Array.isArray(self.config.source) &&
+          self.config.source.includes(payload.source)) ||
+          (!Array.isArray(self.config.source) &&
+            self.config.source === payload.source))
+      ) {
         self.images = payload.images.slice(0, self.config.maximumEntries);
         self.imageIndex = self.imageIndex % (self.images.length || 1);
 
         if (self.imageElement === null && self.images.length > 0) {
-          self.loadNextImage();
+          self.loadNextImage("next");
         }
       }
     }
   },
 
-  getData: function() {
+  getData: function () {
     var self = this;
     var config = Object.assign({}, self.config);
 
@@ -124,18 +148,18 @@ Module.register("MMM-Wallpaper", {
     self.sendSocketNotification("FETCH_WALLPAPERS", config);
   },
 
-  getOrientation: function() {
+  getOrientation: function () {
     var self = this;
 
     if (self.config.orientation === "auto") {
       var viewport = self.getViewport();
-      return (viewport.width < viewport.height) ? "vertical" : "horizontal";
+      return viewport.width < viewport.height ? "vertical" : "horizontal";
     }
 
     return self.config.orientation;
   },
 
-  onImageLoaded: function(imageData, element) {
+  onImageLoaded: function (imageData, element) {
     var self = this;
 
     return () => {
@@ -145,23 +169,26 @@ Module.register("MMM-Wallpaper", {
       element.style.opacity = 1;
       self.title.style.display = "none";
 
-      setTimeout(() => {
-        var caption = imageData.caption;
-        if (self.config.caption && caption) {
-          self.title.innerHTML = caption;
-          self.title.style.display = "initial";
-        }
+      setTimeout(
+        () => {
+          var caption = imageData.caption;
+          if (self.config.caption && caption) {
+            self.title.innerHTML = caption;
+            self.title.style.display = "initial";
+          }
 
-        if (self.imageElement !== null) {
-          self.content.removeChild(self.imageElement);
-        }
-        self.imageElement = self.nextImageElement;
-        self.nextImageElement = null;
-      }, self.config.crossfade ? 1000 : 0);
+          if (self.imageElement !== null) {
+            self.content.removeChild(self.imageElement);
+          }
+          self.imageElement = self.nextImageElement;
+          self.nextImageElement = null;
+        },
+        self.config.crossfade ? 1000 : 0
+      );
     };
   },
 
-  createImage: function(imageData) {
+  createImage: function (imageData) {
     var self = this;
     var img = document.createElement("img");
 
@@ -174,22 +201,22 @@ Module.register("MMM-Wallpaper", {
     return img;
   },
 
-  getDom: function() {
+  getDom: function () {
     return this.wrapper;
   },
 
-  getViewport: function() {
+  getViewport: function () {
     var w = window;
     var e = document.documentElement;
     var g = document.body;
 
     return {
       width: w.innerWidth || e.clientWidth || g.clientWidth,
-      height: w.innerHeight || e.clientHeight || g.clientHeight
+      height: w.innerHeight || e.clientHeight || g.clientHeight,
     };
   },
 
-  getImageUrl: function(image) {
+  getImageUrl: function (image) {
     var viewport = this.getViewport();
     var url = image.url;
 
@@ -197,13 +224,19 @@ Module.register("MMM-Wallpaper", {
       for (var i in image.variants) {
         var variant = image.variants[i];
 
-        if (variant.width > this.config.maxWidth || variant.height > this.config.maxHeight) {
+        if (
+          variant.width > this.config.maxWidth ||
+          variant.height > this.config.maxHeight
+        ) {
           break;
         }
 
         url = variant.url;
 
-        if (variant.width >= viewport.width && variant.height >= viewport.height) {
+        if (
+          variant.width >= viewport.width &&
+          variant.height >= viewport.height
+        ) {
           break;
         }
       }
@@ -212,7 +245,7 @@ Module.register("MMM-Wallpaper", {
     return url;
   },
 
-  loadNextImage: function() {
+  loadNextImage: function (direction) {
     var self = this;
 
     self.resetLoadImageTimer();
@@ -223,7 +256,11 @@ Module.register("MMM-Wallpaper", {
       self.nextImageElement = null;
     }
 
-    self.imageIndex = (self.imageIndex + 1) % self.images.length;
+    // Increment or decrement the image index based on the direction
+    this.imageIndex =
+      direction === "next"
+        ? (this.imageIndex + 1) % this.images.length
+        : (this.imageIndex - 1 + this.images.length) % this.images.length;
 
     const nextImageData = self.images[self.imageIndex];
     if (nextImageData !== null) {
@@ -232,12 +269,15 @@ Module.register("MMM-Wallpaper", {
     }
   },
 
-  resetLoadImageTimer: function() {
+  resetLoadImageTimer: function () {
     const self = this;
 
     if (self.config.slideInterval > 0) {
       clearTimeout(self.loadNextImageTimer);
-      self.loadNextImageTimer = setTimeout(() => self.loadNextImage(), self.config.slideInterval);
+      self.loadNextImageTimer = setTimeout(
+        () => self.loadNextImage("next"),
+        self.config.slideInterval
+      );
     }
   },
 });
