@@ -26,6 +26,9 @@ Module.register("MMM-Wallpaper", {
     flickrResultsPerPage: 500, // Flickr API is limited to 500 photos per page
     fadeEdges: false,
     navImage: false, // Config option for navigation between images
+    restTime: true, // Config option for restTime - a break from pictures
+    restDuration: 30 * 1000, // 30 seconds
+    restInterval: 1 * 60 * 1000, // 5 Mins
   },
 
   getStyles: function () {
@@ -37,6 +40,9 @@ Module.register("MMM-Wallpaper", {
 
     self.loadNextImageTimer = null;
     self.imageIndex = -1;
+
+    self.isResting = false; //Initialize Rest state
+    self.lastRest = Date.now(); //Initialize timestamp for last rest
 
     self.wrapper = document.createElement("div");
     self.wrapper.className = "MMM-Wallpaper";
@@ -274,10 +280,48 @@ Module.register("MMM-Wallpaper", {
 
     if (self.config.slideInterval > 0) {
       clearTimeout(self.loadNextImageTimer);
-      self.loadNextImageTimer = setTimeout(
-        () => self.loadNextImage("next"),
-        self.config.slideInterval
-      );
     }
+    // Check if restTime is enabled
+    if (self.config.restTime) {
+      const now = Date.now();
+      // Check if it's time to rest
+      if (!self.lastRest || now - self.lastRest >= self.config.restInterval) {
+        console.log("Time to Rest" + now)
+        // Time to rest
+        self.isResting = true;
+        self.lastRest = now;
+
+        //Stop Current image from loading
+        if (self.imageElement){
+          self.imageElement.style.display = "none";
+        }
+         if (self.nextImageElement){
+          self.nextImageElement.style.display = "none";
+        }
+
+        //Clear the screen
+        self.content.style.backgroundImage = "";
+        self.title.innerHTML = "";
+
+        //Set time for rest duration
+        console.log("Setting rest duration timer for:", self.config.restDuration);
+        self.loadNextImageTimer = setTimeout(() => {
+          console.log("time to wake up")
+          self.isResting = false;
+
+          if(self.imageElement){
+            self.imageElement.style.display = "";
+          }
+
+          self.resetLoadImageTimer();
+        }, self.config.restDuration);
+        return;
+      }
+    }
+
+    self.loadNextImageTimer = setTimeout(
+      () => self.loadNextImage("next"),
+      self.config.slideInterval
+    );
   },
 });
